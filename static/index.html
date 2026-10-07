@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Documentacao Sankhya</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            background: #f4f6f8;
+            color: #222;
+        }
+
+        header {
+            background: #0f6b4c;
+            color: white;
+            padding: 20px 28px;
+        }
+
+        header p {
+            margin: 6px 0 0;
+        }
+
+        main {
+            padding: 20px 28px 40px;
+        }
+
+        .cards {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            min-width: 180px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .card span {
+            display: block;
+            font-size: 28px;
+            font-weight: bold;
+            margin-top: 6px;
+        }
+
+        .graficos {
+            display: flex;
+            gap: 16px;
+            margin-bottom: 20px;
+        }
+
+        .painel {
+            background: white;
+            border-radius: 8px;
+            padding: 16px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.08);
+        }
+
+        .graficos .painel {
+            flex: 1;
+        }
+
+        .filtros {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 16px;
+        }
+
+        input, select {
+            font-size: 15px;
+            padding: 8px 10px;
+        }
+
+        input {
+            flex: 1;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            background: white;
+        }
+
+        th, td {
+            text-align: left;
+            padding: 10px;
+            border-bottom: 1px solid #e3e6ea;
+        }
+
+        th {
+            background: #e8f3ee;
+        }
+
+        tr {
+            cursor: pointer;
+        }
+
+        #detalhe {
+            margin-top: 16px;
+        }
+
+        #detalhe a {
+            color: #0f6b4c;
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <h1>Documentacao Sankhya</h1>
+        <p>Paginas coletadas do portal publico developer.sankhya.com.br</p>
+    </header>
+
+    <main>
+        <section class="cards">
+            <div class="card">
+                Total de paginas
+                <span id="total">0</span>
+            </div>
+            <div class="card">
+                Paginas de API
+                <span id="total-api">0</span>
+            </div>
+            <div class="card">
+                Guias
+                <span id="total-guias">0</span>
+            </div>
+        </section>
+
+        <section class="graficos">
+            <div class="painel">
+                <h2>Paginas por categoria</h2>
+                <canvas id="grafico-categoria"></canvas>
+            </div>
+            <div class="painel">
+                <h2>Paginas por grupo</h2>
+                <canvas id="grafico-grupo"></canvas>
+            </div>
+        </section>
+
+        <section class="painel">
+            <h2>Pesquisa</h2>
+            <div class="filtros">
+                <input id="busca" type="text" oninput="pesquisar()" placeholder="Buscar por titulo ou resumo">
+                <select id="categoria" onchange="pesquisar()">
+                    <option value="">Todas as categorias</option>
+                </select>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th>Id</th>
+                        <th>Titulo</th>
+                        <th>Grupo</th>
+                        <th>Categoria</th>
+                        <th>Metodo</th>
+                        <th>Coletado em</th>
+                    </tr>
+                </thead>
+                <tbody id="tabela"></tbody>
+            </table>
+
+            <div id="detalhe"></div>
+        </section>
+    </main>
+
+    <script>
+        var graficoCategoria = null;
+        var graficoGrupo = null;
+        var pesquisaAtual = 0;
+
+        function carregarEstatisticas() {
+            fetch("/estatisticas")
+                .then(function (resposta) {
+                    return resposta.json();
+                })
+                .then(function (dados) {
+                    document.getElementById("total").innerText = dados.total;
+                    document.getElementById("total-api").innerText = dados.total_api;
+                    document.getElementById("total-guias").innerText = dados.total_guias;
+                    preencherCategorias(dados.por_categoria);
+                    desenharGraficos(dados);
+                });
+        }
+
+        function preencherCategorias(lista) {
+            var select = document.getElementById("categoria");
+            select.innerHTML = '<option value="">Todas as categorias</option>';
+            for (var i = 0; i < lista.length; i++) {
+                var opcao = document.createElement("option");
+                opcao.value = lista[i].categoria;
+                opcao.innerText = lista[i].categoria;
+                select.appendChild(opcao);
+            }
+        }
+
+        function desenharGraficos(dados) {
+            var nomesCategoria = [];
+            var valoresCategoria = [];
+            for (var i = 0; i < dados.por_categoria.length; i++) {
+                nomesCategoria.push(dados.por_categoria[i].categoria);
+                valoresCategoria.push(dados.por_categoria[i].quantidade);
+            }
+
+            var nomesGrupo = [];
+            var valoresGrupo = [];
+            for (var i = 0; i < dados.por_grupo.length; i++) {
+                nomesGrupo.push(dados.por_grupo[i].grupo);
+                valoresGrupo.push(dados.por_grupo[i].quantidade);
+            }
+
+            if (graficoCategoria !== null) {
+                graficoCategoria.destroy();
+            }
+            if (graficoGrupo !== null) {
+                graficoGrupo.destroy();
+            }
+
+            graficoCategoria = new Chart(document.getElementById("grafico-categoria"), {
+                type: "bar",
+                data: {
+                    labels: nomesCategoria,
+                    datasets: [{
+                        label: "Quantidade",
+                        data: valoresCategoria,
+                        backgroundColor: "#0f6b4c"
+                    }]
+                },
+                options: {
+                    plugins: { legend: { display: false } },
+                    scales: { x: { ticks: { maxRotation: 60, minRotation: 40 } } }
+                }
+            });
+
+            graficoGrupo = new Chart(document.getElementById("grafico-grupo"), {
+                type: "pie",
+                data: {
+                    labels: nomesGrupo,
+                    datasets: [{
+                        data: valoresGrupo,
+                        backgroundColor: ["#0f6b4c", "#3d8bfd", "#f0ad4e", "#d9534f"]
+                    }]
+                }
+            });
+        }
+
+        function preencherTabela(paginas) {
+            var corpo = document.getElementById("tabela");
+            corpo.innerHTML = "";
+            for (var i = 0; i < paginas.length; i++) {
+                var pagina = paginas[i];
+                var linha = document.createElement("tr");
+                var valores = [pagina.id, pagina.titulo, pagina.grupo, pagina.categoria, pagina.metodo, pagina.data_coleta];
+                for (var j = 0; j < valores.length; j++) {
+                    var celula = document.createElement("td");
+                    celula.innerText = valores[j];
+                    linha.appendChild(celula);
+                }
+                linha.setAttribute("data-id", pagina.id);
+                linha.onclick = function () {
+                    abrirDetalhe(this.getAttribute("data-id"));
+                };
+                corpo.appendChild(linha);
+            }
+        }
+
+        function pesquisar() {
+            pesquisaAtual = pesquisaAtual + 1;
+            var esta = pesquisaAtual;
+            var busca = document.getElementById("busca").value;
+            var categoria = document.getElementById("categoria").value;
+            var url = "/paginas?busca=" + encodeURIComponent(busca) + "&categoria=" + encodeURIComponent(categoria);
+
+            fetch(url)
+                .then(function (resposta) {
+                    return resposta.json();
+                })
+                .then(function (paginas) {
+                    if (esta != pesquisaAtual) {
+                        return;
+                    }
+                    preencherTabela(paginas);
+                    document.getElementById("detalhe").innerHTML = "";
+                });
+        }
+
+        function abrirDetalhe(id) {
+            fetch("/paginas/" + id)
+                .then(function (resposta) {
+                    return resposta.json();
+                })
+                .then(function (pagina) {
+                    var caixa = document.getElementById("detalhe");
+                    caixa.innerHTML = "";
+
+                    var titulo = document.createElement("h3");
+                    titulo.innerText = pagina.titulo;
+
+                    var texto = document.createElement("p");
+                    texto.innerText = pagina.resumo;
+
+                    var link = document.createElement("a");
+                    link.href = pagina.url;
+                    link.target = "_blank";
+                    link.innerText = "Abrir pagina original";
+
+                    caixa.appendChild(titulo);
+                    caixa.appendChild(texto);
+                    caixa.appendChild(link);
+                });
+        }
+
+        carregarEstatisticas();
+        pesquisar();
+    </script>
+</body>
+</html>
