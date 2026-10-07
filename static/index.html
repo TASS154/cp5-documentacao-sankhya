@@ -99,20 +99,17 @@
             cursor: pointer;
         }
 
-        #detalhe {
-            margin-bottom: 16px;
-            padding: 12px;
-            background: #e8f3ee;
-            border-radius: 6px;
-            display: none;
+        tr.detalhe {
+            cursor: default;
+            background: #f0f7f4;
         }
 
-        #detalhe.aberto {
-            display: block;
-        }
-
-        #detalhe a {
+        tr.detalhe a {
             color: #0f6b4c;
+        }
+
+        tr.detalhe p {
+            margin: 8px 0;
         }
     </style>
 </head>
@@ -157,8 +154,6 @@
                     <option value="">Todas as categorias</option>
                 </select>
             </div>
-
-            <div id="detalhe"></div>
 
             <table>
                 <thead>
@@ -270,9 +265,16 @@
                 }
                 linha.setAttribute("data-id", pagina.id);
                 linha.onclick = function () {
-                    abrirDetalhe(this.getAttribute("data-id"));
+                    abrirDetalhe(this);
                 };
                 corpo.appendChild(linha);
+            }
+        }
+
+        function fecharDetalhe() {
+            var aberto = document.querySelector("tr.detalhe");
+            if (aberto !== null) {
+                aberto.parentNode.removeChild(aberto);
             }
         }
 
@@ -292,21 +294,29 @@
                         return;
                     }
                     preencherTabela(paginas);
-                    var caixa = document.getElementById("detalhe");
-                    caixa.innerHTML = "";
-                    caixa.className = "";
                 });
         }
 
-        function abrirDetalhe(id) {
+        function abrirDetalhe(linha) {
+            var id = linha.getAttribute("data-id");
+            var proxima = linha.nextSibling;
+            if (proxima !== null && proxima.className === "detalhe") {
+                fecharDetalhe();
+                return;
+            }
+
+            fecharDetalhe();
+
             fetch("/paginas/" + id)
                 .then(function (resposta) {
                     return resposta.json();
                 })
                 .then(function (pagina) {
-                    var caixa = document.getElementById("detalhe");
-                    caixa.innerHTML = "";
-                    caixa.className = "aberto";
+                    var detalhe = document.createElement("tr");
+                    detalhe.className = "detalhe";
+
+                    var celula = document.createElement("td");
+                    celula.colSpan = 6;
 
                     var titulo = document.createElement("h3");
                     titulo.innerText = pagina.titulo;
@@ -319,10 +329,16 @@
                     link.target = "_blank";
                     link.innerText = "Abrir pagina original";
 
-                    caixa.appendChild(titulo);
-                    caixa.appendChild(texto);
-                    caixa.appendChild(link);
-                    caixa.scrollIntoView({ behavior: "smooth", block: "nearest" });
+                    celula.appendChild(titulo);
+                    celula.appendChild(texto);
+                    celula.appendChild(link);
+                    detalhe.appendChild(celula);
+
+                    if (linha.nextSibling !== null) {
+                        linha.parentNode.insertBefore(detalhe, linha.nextSibling);
+                    } else {
+                        linha.parentNode.appendChild(detalhe);
+                    }
                 });
         }
 
