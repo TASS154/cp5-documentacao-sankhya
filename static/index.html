@@ -100,7 +100,15 @@
         }
 
         #detalhe {
-            margin-top: 16px;
+            margin-bottom: 16px;
+            padding: 12px;
+            background: #e8f3ee;
+            border-radius: 6px;
+            display: none;
+        }
+
+        #detalhe.aberto {
+            display: block;
         }
 
         #detalhe a {
@@ -150,6 +158,8 @@
                 </select>
             </div>
 
+            <div id="detalhe"></div>
+
             <table>
                 <thead>
                     <tr>
@@ -163,8 +173,6 @@
                 </thead>
                 <tbody id="tabela"></tbody>
             </table>
-
-            <div id="detalhe"></div>
         </section>
     </main>
 
@@ -284,7 +292,9 @@
                         return;
                     }
                     preencherTabela(paginas);
-                    document.getElementById("detalhe").innerHTML = "";
+                    var caixa = document.getElementById("detalhe");
+                    caixa.innerHTML = "";
+                    caixa.className = "";
                 });
         }
 
@@ -296,6 +306,7 @@
                 .then(function (pagina) {
                     var caixa = document.getElementById("detalhe");
                     caixa.innerHTML = "";
+                    caixa.className = "aberto";
 
                     var titulo = document.createElement("h3");
                     titulo.innerText = pagina.titulo;
@@ -311,6 +322,7 @@
                     caixa.appendChild(titulo);
                     caixa.appendChild(texto);
                     caixa.appendChild(link);
+                    caixa.scrollIntoView({ behavior: "smooth", block: "nearest" });
                 });
         }
 

@@ -98,7 +98,7 @@ A pagina inicial consome somente a API. Ela mostra:
 - um grafico de pizza por grupo
 - uma pesquisa por texto e por categoria
 - a tabela dos registros
-- o resumo de um registro ao clicar na linha
+- o resumo de um registro ao clicar na linha, mostrado acima da tabela
 
 ## Organizacao do codigo
 
